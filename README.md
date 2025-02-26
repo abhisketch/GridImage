@@ -1,1 +1,212 @@
-# GridImage
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📷 Image Grid Overlay Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            user-select: none;
+        }
+        h1 {
+            font-size: 24px;
+            color: #007BFF;
+            animation: fadeIn 2s infinite alternate;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        .container {
+            margin-top: 20px;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+            border: 1px solid black;
+            background-color: white;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input {
+            padding: 5px;
+            font-size: 14px;
+        }
+        footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: gray;
+        }
+    </style>
+</head>
+<body>
+    <h1>📷 Image Grid Overlay Tool</h1>
+    <p>🔒 We do not store any uploaded images.</p>
+
+    <div class="container">
+        <input type="file" id="imageUpload" accept="image/*">
+        <input type="number" id="gridSize" min="1" value="5" placeholder="Grid Size">
+        <input type="color" id="gridColor" value="#000000">
+        <p>Grid Opacity</p>
+        <input type="range" id="gridOpacity" min="0" max="1" step="0.1" value="0.5">
+        <p>Grid Thickness</p>
+        <input type="range" id="gridThickness" min="1" max="5" value="2">
+    </div>
+
+    <div class="controls">
+        <button onclick="applyGrid()">Apply Grid</button>
+        <button onclick="toggleNumbers()">Toggle Numbers</button>
+        <button onclick="toggleDiagonals()">Toggle Diagonals</button>
+        <button onclick="downloadImage()">Download Image</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <footer>© 2025 Created by YourWebsite.com | All Rights Reserved</footer>
+
+    <script>
+        let image = new Image();
+        let showNumbers = true;
+        let showDiagonals = false;
+
+        document.getElementById("imageUpload").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    image.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        image.onload = function() {
+            drawImage();
+        };
+
+        function drawImage() {
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = image.width;
+            canvas.height = image.height;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        }
+
+        function applyGrid() {
+            if (!image.src) return;
+            const gridSize = parseInt(document.getElementById("gridSize").value);
+            const gridColor = document.getElementById("gridColor").value;
+            const gridOpacity = parseFloat(document.getElementById("gridOpacity").value);
+            const gridThickness = parseInt(document.getElementById("gridThickness").value);
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+            drawImage();
+
+            const maxSize = Math.max(canvas.width, canvas.height);
+            const squareSize = maxSize / gridSize;
+
+            ctx.globalAlpha = gridOpacity;
+            ctx.strokeStyle = gridColor;
+            ctx.lineWidth = gridThickness;
+
+            for (let i = 0; i <= gridSize; i++) {
+                const pos = i * squareSize;
+                ctx.beginPath();
+                ctx.moveTo(pos, 0);
+                ctx.lineTo(pos, canvas.height);
+                ctx.moveTo(0, pos);
+                ctx.lineTo(canvas.width, pos);
+                ctx.stroke();
+            }
+
+            if (showNumbers) drawNumbers(ctx, gridSize, squareSize);
+            if (showDiagonals) drawDiagonals(ctx, gridSize, squareSize);
+        }
+
+        function drawNumbers(ctx, gridSize, squareSize) {
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = "red";
+            ctx.font = "16px Arial";
+            for (let i = 1; i <= gridSize; i++) {
+                const pos = i * squareSize;
+                ctx.fillText(i, pos - 10, 20);
+                ctx.fillText(i, 5, pos + 5);
+            }
+        }
+
+        function drawDiagonals(ctx, gridSize, squareSize) {
+            ctx.strokeStyle = document.getElementById("gridColor").value;
+            ctx.lineWidth = parseInt(document.getElementById("gridThickness").value);
+            ctx.globalAlpha = parseFloat(document.getElementById("gridOpacity").value);
+
+            for (let i = 0; i <= gridSize; i++) {
+                for (let j = 0; j <= gridSize; j++) {
+                    const x = i * squareSize;
+                    const y = j * squareSize;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + squareSize, y + squareSize);
+                    ctx.moveTo(x, y + squareSize);
+                    ctx.lineTo(x + squareSize, y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function toggleNumbers() {
+            showNumbers = !showNumbers;
+            applyGrid();
+        }
+
+        function toggleDiagonals() {
+            showDiagonals = !showDiagonals;
+            applyGrid();
+        }
+
+        function downloadImage() {
+            const canvas = document.getElementById("canvas");
+            const link = document.createElement("a");
+            link.download = "grid_image." + image.src.split(";")[0].split("/")[1];
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Disable Right Click
+        document.addEventListener("contextmenu", function(e) {
+            e.preventDefault();
+        });
+
+        // Disable Keyboard Shortcuts (Inspect Element, Developer Tools, View Source)
+        document.addEventListener("keydown", function(event) {
+            if (event.ctrlKey && (event.key === "u" || event.key === "s" || event.key === "p")) {
+                event.preventDefault();
+            }
+            if ((event.ctrlKey && event.shiftKey && (event.key === "I" || event.key === "J")) || event.key === "F12") {
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
